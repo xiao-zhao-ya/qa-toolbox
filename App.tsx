@@ -9,6 +9,7 @@ import DataGenTool from './pages/DataGenTool';
 import RegexTool from './pages/RegexTool';
 import FormatConvert from './pages/FormatConvert';
 import EncodeDecode from './pages/EncodeDecode';
+import HttpStatusTool from './pages/HttpStatusTool';
 
 // Placeholder for tools not fully implemented in this demo
 const Placeholder = ({ title }: { title: string }) => (
@@ -28,6 +29,7 @@ const App: React.FC = () => {
           <Route path="tools/json" element={<JsonTools />} />
           <Route path="tools/time" element={<TimeTools />} />
           <Route path="tools/url" element={<UrlTool />} />
+          <Route path="tools/http-status" element={<HttpStatusTool />} />
           <Route path="tools/data-gen" element={<DataGenTool />} />
           <Route path="tools/regex" element={<RegexTool />} />
           <Route path="tools/format-convert" element={<FormatConvert />} />

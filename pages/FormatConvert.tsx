@@ -1,15 +1,77 @@
 import React, { useState } from 'react';
 import { load, dump } from 'js-yaml';
 
-type ConvertType = 'xml' | 'yaml' | 'csv';
+type ConvertType = 'sql' | 'xml' | 'yaml' | 'csv';
 
 const FormatConvert: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ConvertType>('xml');
+  const [activeTab, setActiveTab] = useState<ConvertType>('sql');
   const [leftInput, setLeftInput] = useState('');
   const [rightInput, setRightInput] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   // --- Helpers ---
+
+  // 0. JSON -> SQL DDL
+  const jsonToSql = (jsonStr: string) => {
+    let data;
+    try {
+        data = JSON.parse(jsonStr);
+    } catch (e) {
+        throw new Error("无效的 JSON 格式");
+    }
+
+    let tableName = 'my_table';
+    let item = data;
+
+    // Handle Array: Use the first element to infer schema
+    if (Array.isArray(data)) {
+        if (data.length === 0) throw new Error("数组为空，无法推断表结构");
+        item = data[0];
+    }
+
+    if (typeof item !== 'object' || item === null) {
+        throw new Error("JSON 必须是对象或对象数组");
+    }
+
+    const lines = [];
+    lines.push(`CREATE TABLE ${tableName} (`);
+    
+    const entries = Object.entries(item);
+    const definitions = entries.map(([key, value]) => {
+        let type = 'TEXT';
+        let comment = '';
+
+        if (value === null) {
+            type = 'TEXT';
+        } else if (typeof value === 'number') {
+            if (Number.isInteger(value)) {
+                // Check for potential ID or large integers
+                type = value > 2147483647 ? 'BIGINT' : 'INT';
+            } else {
+                type = 'DECIMAL(10, 2)';
+            }
+        } else if (typeof value === 'boolean') {
+            type = 'BOOLEAN';
+        } else if (typeof value === 'object') {
+             // Array or Object
+             type = 'TEXT'; 
+             comment = ' -- JSON data';
+        } else if (typeof value === 'string') {
+            // Heuristic for Date? 
+            // ISO 8601 date check could be added here, but keeping it simple for now.
+            if (value.length > 255) type = 'TEXT';
+            else type = 'VARCHAR(255)';
+        }
+
+        // Quote the key in case it's a reserved word
+        return `    \`${key}\` ${type}${comment}`;
+    });
+
+    lines.push(definitions.join(',\n'));
+    lines.push(`);`);
+
+    return lines.join('\n');
+  };
 
   // 1. JSON <-> YAML
   const jsonToYaml = (jsonStr: string) => {
@@ -46,9 +108,6 @@ const FormatConvert: React.FC = () => {
         for (const k in obj) {
             xml += toXml(obj[k], k);
         }
-        // Basic heuristic: if multiple root elements, wrap in <root>
-        // But for standard objects, we just output keys.
-        // A proper XML usually needs one root.
         return `<root>${xml}</root>`;
     } else {
         return `<root>${toXml(obj, 'item')}</root>`;
@@ -73,21 +132,11 @@ const FormatConvert: React.FC = () => {
             const element = node as Element;
             const obj: any = {};
             
-            // Attributes (optional, currently ignoring for simplicity or treating as props)
-            // if (element.attributes.length > 0) {
-            //     obj["@attributes"] = {};
-            //     for (let j = 0; j < element.attributes.length; j++) {
-            //         const attribute = element.attributes.item(j);
-            //         obj["@attributes"][attribute!.nodeName] = attribute!.nodeValue;
-            //     }
-            // }
-
             let hasChildren = false;
             for(let i = 0; i < element.childNodes.length; i++) {
                 const child = element.childNodes[i];
                 if (child.nodeType === Node.TEXT_NODE) {
                     if (child.nodeValue?.trim() === '') continue;
-                    // If element has text content only
                     if (element.childNodes.length === 1) return child.nodeValue;
                 }
                 
@@ -109,7 +158,6 @@ const FormatConvert: React.FC = () => {
         }
     };
     
-    // Start from first child of document (root)
     const root = xmlDoc.documentElement;
     const result = { [root.nodeName]: xmlToObj(root) };
     return JSON.stringify(result, null, 2);
@@ -118,10 +166,9 @@ const FormatConvert: React.FC = () => {
   // 3. JSON <-> CSV
   const jsonToCsv = (jsonStr: string) => {
     const arr = JSON.parse(jsonStr);
-    if (!Array.isArray(arr)) throw new Error("JSON must be an array of objects for CSV conversion");
+    if (!Array.isArray(arr)) throw new Error("JSON 必须是对象数组才能转换为 CSV");
     if (arr.length === 0) return "";
 
-    // Collect all keys
     const keys = Array.from(new Set(arr.flatMap(Object.keys)));
     const header = keys.join(',');
     const rows = arr.map(obj => {
@@ -129,7 +176,6 @@ const FormatConvert: React.FC = () => {
             const val = (obj as any)[k];
             if (val === null || val === undefined) return '';
             const str = String(val);
-            // Escape quotes and wrap in quotes if contains comma or quote
             if (str.includes(',') || str.includes('"') || str.includes('\n')) {
                 return `"${str.replace(/"/g, '""')}"`;
             }
@@ -146,9 +192,6 @@ const FormatConvert: React.FC = () => {
     
     const result = [];
     for (let i = 1; i < lines.length; i++) {
-        // Simple CSV parse (does not handle newlines inside quotes perfectly)
-        // A robust regex is better but complex. We'll use a basic split for now 
-        // but respect quotes.
         const rowData: string[] = [];
         let current = '';
         let inQuote = false;
@@ -167,11 +210,9 @@ const FormatConvert: React.FC = () => {
         const obj: any = {};
         headers.forEach((h, index) => {
             let val = rowData[index]?.trim() || '';
-            // Unescape double quotes
             if (val.startsWith('"') && val.endsWith('"')) {
                 val = val.slice(1, -1).replace(/""/g, '"');
             }
-            // Try number
             if (!isNaN(Number(val)) && val !== '') {
                 obj[h] = Number(val);
             } else if (val === 'true') {
@@ -194,12 +235,16 @@ const FormatConvert: React.FC = () => {
             // JSON -> Target
             if (!leftInput.trim()) return;
             switch (activeTab) {
+                case 'sql': setRightInput(jsonToSql(leftInput)); break;
                 case 'xml': setRightInput(jsonToXml(leftInput)); break;
                 case 'yaml': setRightInput(jsonToYaml(leftInput)); break;
                 case 'csv': setRightInput(jsonToCsv(leftInput)); break;
             }
         } else {
             // Target -> JSON
+            if (activeTab === 'sql') {
+                throw new Error("暂不支持 SQL 逆向转 JSON (SQL 解析太复杂啦)");
+            }
             if (!rightInput.trim()) return;
             switch (activeTab) {
                 case 'xml': setLeftInput(xmlToJsonHelper(rightInput)); break;
@@ -214,6 +259,7 @@ const FormatConvert: React.FC = () => {
 
   const getRightLabel = () => {
     switch (activeTab) {
+        case 'sql': return 'SQL DDL';
         case 'xml': return 'XML';
         case 'yaml': return 'YAML';
         case 'csv': return 'CSV';
@@ -224,14 +270,14 @@ const FormatConvert: React.FC = () => {
   return (
     <div className="h-full flex flex-col space-y-4">
       {/* Tabs */}
-      <div className="flex space-x-2 border-b border-gray-200 dark:border-slate-700 pb-2">
-        {(['xml', 'yaml', 'csv'] as ConvertType[]).map((t) => (
+      <div className="flex space-x-2 border-b border-gray-200 dark:border-slate-700 pb-2 overflow-x-auto">
+        {(['sql', 'xml', 'yaml', 'csv'] as ConvertType[]).map((t) => (
             <button
                 key={t}
                 onClick={() => { setActiveTab(t); setError(null); }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors uppercase ${activeTab === t ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors uppercase whitespace-nowrap ${activeTab === t ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
             >
-                JSON ⇄ {t}
+                JSON {t === 'sql' ? '→' : '⇄'} {t === 'sql' ? 'SQL DDL' : t.toUpperCase()}
             </button>
         ))}
       </div>
@@ -250,7 +296,7 @@ const FormatConvert: React.FC = () => {
                 className="flex-1 w-full p-4 font-mono text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                 value={leftInput}
                 onChange={e => setLeftInput(e.target.value)}
-                placeholder='[{"name": "Alice", "age": 30}]'
+                placeholder={activeTab === 'sql' ? '{"id": 1, "name": "Test"}' : '[{"name": "Alice", "age": 30}]'}
              />
          </div>
 
@@ -267,12 +313,12 @@ const FormatConvert: React.FC = () => {
                 className="flex-1 w-full p-4 font-mono text-sm border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
                 value={rightInput}
                 onChange={e => setRightInput(e.target.value)}
-                placeholder={activeTab === 'csv' ? 'name,age\nAlice,30' : ''}
+                placeholder={activeTab === 'csv' ? 'name,age\nAlice,30' : 'CREATE TABLE ...'}
              />
          </div>
       </div>
 
-      {/* Action Bar (Middle overlay or separate section) */}
+      {/* Action Bar */}
       <div className="flex justify-center gap-4 py-2">
          <button 
             onClick={() => handleConvert('leftToRight')}
@@ -281,9 +327,11 @@ const FormatConvert: React.FC = () => {
              <span>JSON 转 {getRightLabel()}</span>
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
          </button>
+         
          <button 
             onClick={() => handleConvert('rightToLeft')}
-            className="px-6 py-2 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg shadow-md transition-colors flex items-center gap-2"
+            disabled={activeTab === 'sql'}
+            className={`px-6 py-2 text-white font-semibold rounded-lg shadow-md transition-colors flex items-center gap-2 ${activeTab === 'sql' ? 'bg-gray-400 cursor-not-allowed' : 'bg-slate-600 hover:bg-slate-700'}`}
          >
              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
              <span>{getRightLabel()} 转 JSON</span>

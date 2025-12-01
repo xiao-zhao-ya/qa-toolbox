@@ -35,6 +35,9 @@ export const Icons: Record<string, React.FC<{ className?: string }>> = {
   ),
   Settings: ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+  ),
+  Globe: ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
   )
 };
 
@@ -49,8 +52,8 @@ export const TOOLS: Tool[] = [
   },
   {
     id: 'convert',
-    name: '格式转换',
-    desc: 'JSON, XML, YAML, CSV 互转。',
+    name: '数据转换',
+    desc: 'JSON 转 SQL DDL, XML, YAML, CSV 互转。',
     path: '/tools/format-convert',
     category: ToolCategory.DATA,
     icon: 'Shuffle'
@@ -62,6 +65,14 @@ export const TOOLS: Tool[] = [
     path: '/tools/url',
     category: ToolCategory.HTTP,
     icon: 'Link'
+  },
+  {
+    id: 'http-status',
+    name: 'HTTP 状态码',
+    desc: '常见 HTTP 状态码速查与详解。',
+    path: '/tools/http-status',
+    category: ToolCategory.HTTP,
+    icon: 'Globe'
   },
   {
     id: 'time',
