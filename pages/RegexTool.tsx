@@ -42,7 +42,7 @@ const RegexTool: React.FC = () => {
   return (
     <div className="h-full flex flex-col gap-6">
         {/* Regex Input */}
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex gap-4 items-center">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex gap-4 items-center shrink-0">
             <div className="flex-1 flex items-center gap-2 text-lg font-mono bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded px-3 py-2">
                 <span className="text-gray-400">/</span>
                 <input 
@@ -64,7 +64,7 @@ const RegexTool: React.FC = () => {
         </div>
 
         {/* Quick Templates */}
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex gap-2 overflow-x-auto pb-2 shrink-0">
             {[
                 { name: 'Email', p: '[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}' },
                 { name: 'IPv4', p: '\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b' },
@@ -80,9 +80,9 @@ const RegexTool: React.FC = () => {
             ))}
         </div>
 
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-0">
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-0">
             {/* Test String */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 h-full">
                 <label className="font-semibold text-sm text-gray-500">测试文本</label>
                 <textarea 
                     className="flex-1 w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 focus:outline-none resize-none font-mono text-sm"

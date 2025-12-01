@@ -93,7 +93,8 @@ const Layout: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-auto p-4 md:p-8">
-            <div className="max-w-6xl mx-auto">
+            {/* Added h-full and flex-col to ensure children can expand to fill height */}
+            <div className="max-w-6xl mx-auto h-full flex flex-col">
                  <Outlet />
             </div>
         </div>
