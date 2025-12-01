@@ -1,0 +1,5 @@
+{
+  "name": "QA-tool",
+  "description": "测试工程师 (QA) 综合实用工具箱，包含 JSON 格式化、时间转换、正则测试和数据生成等功能。",
+  "requestFramePermissions": []
+}

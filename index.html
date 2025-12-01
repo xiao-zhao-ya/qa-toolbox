@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="测试工程师 (QA) 专属的在线工具箱：集成 JSON 格式化、时间戳转换、正则测试、URL 解析、数据生成等高频实用工具。简洁高效，支持深色模式。" />
+    <meta name="keywords" content="测试工具, QA工具, JSON格式化, 时间戳转换, 正则测试, 数据生成, 在线工具" />
+    <meta property="og:title" content="测试工程师常用工具箱" />
+    <meta property="og:description" content="一站式 QA 辅助工具：JSON、时间、正则、数据生成，提升测试效率。" />
+    <title>测试工程师工具箱 | QA Toolbox</title>
+    <!-- Tailwind CSS CDN is kept for simplicity to avoid PostCSS setup -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#3b82f6',
+              secondary: '#64748b',
+              dark: '#0f172a',
+              light: '#f8fafc'
+            }
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.6",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.6",
+    "js-yaml": "https://aistudiocdn.com/js-yaml@^4.1.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-light text-slate-900 dark:bg-dark dark:text-slate-100 transition-colors duration-200">
+    <div id="root"></div>
+    <!-- Vite entry point -->
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
