@@ -3,6 +3,40 @@ import { Link } from 'react-router-dom';
 import { TOOLS, Icons } from '../constants';
 import { Tool, ToolCategory } from '../types';
 
+interface ToolCardProps {
+  tool: Tool;
+  isFav: boolean;
+  onToggle: (id: string, e: React.MouseEvent) => void;
+}
+
+const ToolCard: React.FC<ToolCardProps> = ({ tool, isFav, onToggle }) => {
+  const Icon = Icons[tool.icon] || Icons.Code;
+
+  return (
+    <Link 
+      to={tool.path}
+      className="block p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500 transition-all group relative"
+    >
+      <button 
+        onClick={(e) => onToggle(tool.id, e)}
+        className={`absolute top-3 right-3 p-1 rounded-full transition-colors ${isFav ? 'text-yellow-400' : 'text-gray-300 dark:text-slate-600 hover:text-yellow-400'}`}
+      >
+        <Icons.Star className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
+      </button>
+
+      <div className="flex items-start gap-4">
+        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+           <Icon className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100 mb-1">{tool.name}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-snug">{tool.desc}</p>
+        </div>
+      </div>
+    </Link>
+  );
+};
+
 const Home: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -36,36 +70,6 @@ const Home: React.FC = () => {
     acc[tool.category].push(tool);
     return acc;
   }, {} as Record<ToolCategory, Tool[]>);
-
-  // Render Card Component
-  const ToolCard = ({ tool }: { tool: Tool }) => {
-    const Icon = Icons[tool.icon] || Icons.Code;
-    const isFav = favorites.includes(tool.id);
-
-    return (
-      <Link 
-        to={tool.path}
-        className="block p-4 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500 transition-all group relative"
-      >
-        <button 
-          onClick={(e) => toggleFavorite(tool.id, e)}
-          className={`absolute top-3 right-3 p-1 rounded-full transition-colors ${isFav ? 'text-yellow-400' : 'text-gray-300 dark:text-slate-600 hover:text-yellow-400'}`}
-        >
-          <Icons.Star className={`w-5 h-5 ${isFav ? 'fill-current' : ''}`} />
-        </button>
-
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
-             <Icon className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100 mb-1">{tool.name}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-snug">{tool.desc}</p>
-          </div>
-        </div>
-      </Link>
-    );
-  };
 
   return (
     <div className="space-y-8 pb-10">
@@ -101,7 +105,12 @@ const Home: React.FC = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {TOOLS.filter(t => favorites.includes(t.id)).map(tool => (
-              <ToolCard key={tool.id} tool={tool} />
+              <ToolCard 
+                key={tool.id} 
+                tool={tool} 
+                isFav={true}
+                onToggle={toggleFavorite}
+              />
             ))}
           </div>
         </section>
@@ -115,7 +124,12 @@ const Home: React.FC = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {tools.map(tool => (
-              <ToolCard key={tool.id} tool={tool} />
+              <ToolCard 
+                key={tool.id} 
+                tool={tool} 
+                isFav={favorites.includes(tool.id)}
+                onToggle={toggleFavorite}
+              />
             ))}
           </div>
         </section>
