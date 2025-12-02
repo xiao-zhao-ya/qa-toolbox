@@ -11,6 +11,7 @@ import FormatConvert from './pages/FormatConvert';
 import EncodeDecode from './pages/EncodeDecode';
 import HttpStatusTool from './pages/HttpStatusTool';
 import TextDiff from './pages/TextDiff';
+import TextTemplating from './pages/TextTemplating';
 
 // Placeholder for tools not fully implemented in this demo
 const Placeholder = ({ title }: { title: string }) => (
@@ -36,6 +37,7 @@ const App: React.FC = () => {
           <Route path="tools/format-convert" element={<FormatConvert />} />
           <Route path="tools/encode" element={<EncodeDecode />} />
           <Route path="tools/diff" element={<TextDiff />} />
+          <Route path="tools/templating" element={<TextTemplating />} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

@@ -102,6 +102,14 @@ export const TOOLS: Tool[] = [
     icon: 'Diff'
   },
   {
+    id: 'templating',
+    name: '数据批量替换',
+    desc: '根据自定义规则批量查找并替换文本内容。',
+    path: '/tools/templating',
+    category: ToolCategory.GEN,
+    icon: 'Code'
+  },
+  {
     id: 'datagen',
     name: '测试数据生成',
     desc: '生成随机用户数据、UUID 和边界测试字符串。',
