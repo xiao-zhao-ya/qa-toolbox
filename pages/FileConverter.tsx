@@ -205,7 +205,7 @@ const FileConverter: React.FC = () => {
         }
 
         const pdfBytes = await mergedPdf.save();
-        const blob = new Blob([data as unknown as BlobPart], { type: 'application/ofd' });
+        const blob = new Blob([pdfBytes as any], { type: 'application/ofd' });
         downloadBlob(blob, 'merged_documents.pdf');
 
     } catch (e: any) {
