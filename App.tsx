@@ -3,6 +3,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import JsonTools from './pages/JsonTools';
+import JsonAnalyzer from './pages/JsonAnalyzer';
 import TimeTools from './pages/TimeTools';
 import UrlTool from './pages/UrlTool';
 import DataGenTool from './pages/DataGenTool';
@@ -30,6 +31,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="tools/json" element={<JsonTools />} />
+          <Route path="tools/json-analyze" element={<JsonAnalyzer />} />
           <Route path="tools/time" element={<TimeTools />} />
           <Route path="tools/url" element={<UrlTool />} />
           <Route path="tools/http-status" element={<HttpStatusTool />} />
