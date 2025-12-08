@@ -82,6 +82,14 @@ export const TOOLS: Tool[] = [
     category: ToolCategory.ANALYSIS,
     icon: 'Code'
   },
+  {
+    id: 'diff',
+    name: '文本对比',
+    desc: '文本或表格对比是否一致。',
+    path: '/tools/diff',
+    category: ToolCategory.ANALYSIS,
+    icon: 'Diff'
+  },
 
   // --- 数据转换 (Data Conversion) ---
   {
@@ -141,14 +149,6 @@ export const TOOLS: Tool[] = [
     path: '/tools/time',
     category: ToolCategory.BASIC,
     icon: 'Clock'
-  },
-  {
-    id: 'diff',
-    name: '文本对比',
-    desc: '文本或表格对比是否一致。',
-    path: '/tools/diff',
-    category: ToolCategory.BASIC,
-    icon: 'Diff'
   },
   {
     id: 'base64',
