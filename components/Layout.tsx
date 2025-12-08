@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Icons, TOOLS } from '../constants';
+import { ToolCategory } from '../types';
 
 const Layout: React.FC = () => {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
@@ -23,6 +24,9 @@ const Layout: React.FC = () => {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location]);
+
+  // Define category order
+  const categoryOrder = [ToolCategory.ANALYSIS, ToolCategory.CONVERSION, ToolCategory.BASIC];
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
@@ -50,22 +54,32 @@ const Layout: React.FC = () => {
             <span>首页</span>
           </NavLink>
 
-          <div className="pt-4 pb-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            工具列表
-          </div>
-          
-          {TOOLS.map((tool) => {
-             const Icon = Icons[tool.icon] || Icons.Code;
+          {categoryOrder.map((category) => {
+             const categoryTools = TOOLS.filter(t => t.category === category);
+             if (categoryTools.length === 0) return null;
+
              return (
-              <NavLink 
-                key={tool.id}
-                to={tool.path}
-                className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-700'}`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="truncate">{tool.name}</span>
-              </NavLink>
-            );
+               <div key={category} className="mt-6 first:mt-4">
+                 <div className="px-3 mb-2 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                   {category}
+                 </div>
+                 <div className="space-y-1">
+                   {categoryTools.map(tool => {
+                     const Icon = Icons[tool.icon] || Icons.Code;
+                     return (
+                        <NavLink 
+                          key={tool.id}
+                          to={tool.path}
+                          className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'hover:bg-gray-100 dark:hover:bg-slate-700'}`}
+                        >
+                          <Icon className="w-5 h-5" />
+                          <span className="truncate">{tool.name}</span>
+                        </NavLink>
+                     );
+                   })}
+                 </div>
+               </div>
+             );
           })}
         </nav>
 

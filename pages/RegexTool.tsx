@@ -9,7 +9,7 @@ interface GeneratedRegex {
 }
 
 const RegexTool: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('test');
+  const [activeTab, setActiveTab] = useState<Tab>('generate');
 
   // --- State for Testing ---
   const [pattern, setPattern] = useState('');
@@ -60,79 +60,131 @@ const RegexTool: React.FC = () => {
     setGenError(null);
 
     if (!genSource || !genTarget) return;
-    if (!genSource.includes(genTarget)) {
-        setGenError('错误：目标文本必须存在于源文本中。');
-        return;
-    }
+
+    // Split target by comma to see if it's a multi-keyword request
+    const parts = genTarget.split(',').map(s => s.trim()).filter(s => s.length > 0);
+
+    // If parsing failed or empty
+    if (parts.length === 0) return;
 
     const suggestions: GeneratedRegex[] = [];
-    const escapedTarget = escapeRegExp(genTarget);
 
-    // 1. Literal Match (精确匹配)
-    suggestions.push({
-        label: '精确匹配',
-        pattern: escapedTarget,
-        desc: '仅匹配完全相同的字符串，特殊字符已转义。'
-    });
+    // --- CASE A: Multiple Keywords (comma separated) ---
+    if (parts.length > 1) {
+        // 1. Validation: Check if all parts exist in order
+        let lastIndex = -1;
+        for (const part of parts) {
+            const index = genSource.indexOf(part, lastIndex + 1);
+            if (index === -1) {
+                setGenError(`错误：无法在源文本中按顺序找到 "${part}"。请确保所有关键词都存在且顺序正确。`);
+                return;
+            }
+            lastIndex = index;
+        }
 
-    // 2. Data Type Inference (类型推断)
-    if (/^\d+$/.test(genTarget)) {
-        suggestions.push({ label: '纯数字', pattern: '\\d+', desc: '匹配任意连续数字。' });
-    } else if (/^[a-zA-Z]+$/.test(genTarget)) {
-        suggestions.push({ label: '纯字母', pattern: '[a-zA-Z]+', desc: '匹配任意连续字母。' });
-    } else if (/^[a-zA-Z0-9]+$/.test(genTarget)) {
-        suggestions.push({ label: '数字字母组合', pattern: '[a-zA-Z0-9]+', desc: '匹配数字和字母。' });
-    } else if (/^[\w-]+$/.test(genTarget)) {
-         suggestions.push({ label: '单词字符', pattern: '[\\w-]+', desc: '匹配字母、数字、下划线或横杠。' });
-    }
+        // 2. Generate Patterns
+        const escapedParts = parts.map(escapeRegExp);
 
-    // 3. Contextual Match (上下文提取)
-    const index = genSource.indexOf(genTarget);
-    
-    // Left Context (Prefix)
-    // Find the nearest "boundary" character before the target (space, colon, etc.)
-    const prefixStr = genSource.substring(0, index);
-    const suffixStr = genSource.substring(index + genTarget.length);
-
-    // Try to find a meaningful anchor (e.g., "ID: " or "key=")
-    // Grab up to 10 chars, trim spaces, but keep the delimiter
-    const meaningfulPrefixMatch = prefixStr.match(/([a-zA-Z0-9_]+[:=]\s*)$/); 
-    
-    if (meaningfulPrefixMatch) {
-        const prefix = escapeRegExp(meaningfulPrefixMatch[1]);
+        // Pattern 1: Loose match (dot matches newlines via [\s\S])
+        // PartA[\s\S]*?PartB
         suggestions.push({
-            label: '基于前缀提取',
-            pattern: `${prefix}(.*?)`,
-            desc: `匹配 "${meaningfulPrefixMatch[1]}" 之后的内容 (捕获组 1)。`
+            label: '多关键词匹配',
+            pattern: escapedParts.join('[\\s\\S]*?'),
+            desc: '匹配按顺序出现的关键词，中间允许包含任意字符（包括换行）。'
         });
+
+        // Pattern 2: Capture content between keywords
+        // PartA([\s\S]*?)PartB
+        suggestions.push({
+            label: '提取中间内容',
+            pattern: escapedParts.join('([\\s\\S]*?)'),
+            desc: '匹配关键词，并创建捕获组提取它们之间的内容。'
+        });
+
+        // Pattern 3: Single line greedy (if strict on line)
+        suggestions.push({
+            label: '单行匹配',
+            pattern: escapedParts.join('.*?'),
+            desc: '仅在同一行内匹配所有关键词（不跨行）。'
+        });
+
+    } 
+    // --- CASE B: Single Target ---
+    else {
+        const singleTarget = parts[0];
         
-        // Zero-width lookbehind (Advanced)
+        if (!genSource.includes(singleTarget)) {
+            setGenError('错误：目标文本必须存在于源文本中。');
+            return;
+        }
+
+        const escapedTarget = escapeRegExp(singleTarget);
+
+        // 1. Literal Match (精确匹配)
         suggestions.push({
-            label: '零宽断言 (Lookbehind)',
-            pattern: `(?<=${prefix}).*?`,
-            desc: `仅匹配值，不包含前缀 "${meaningfulPrefixMatch[1]}" (部分浏览器支持)。`
+            label: '精确匹配',
+            pattern: escapedTarget,
+            desc: '仅匹配完全相同的字符串，特殊字符已转义。'
         });
-    } else {
-        // Fallback: simple surrounding non-whitespace
-        const lastSpaceIndex = prefixStr.lastIndexOf(' ');
-        if (lastSpaceIndex !== -1 && index - lastSpaceIndex < 15) {
-             const shortPrefix = escapeRegExp(prefixStr.substring(lastSpaceIndex + 1));
-             if (shortPrefix) {
-                 suggestions.push({
-                    label: '基于前文边界',
-                    pattern: `${shortPrefix}(.*?)`,
-                    desc: `根据前一个单词定位。`
-                 });
-             }
+
+        // 2. Data Type Inference (类型推断)
+        if (/^\d+$/.test(singleTarget)) {
+            suggestions.push({ label: '纯数字', pattern: '\\d+', desc: '匹配任意连续数字。' });
+        } else if (/^[a-zA-Z]+$/.test(singleTarget)) {
+            suggestions.push({ label: '纯字母', pattern: '[a-zA-Z]+', desc: '匹配任意连续字母。' });
+        } else if (/^[a-zA-Z0-9]+$/.test(singleTarget)) {
+            suggestions.push({ label: '数字字母组合', pattern: '[a-zA-Z0-9]+', desc: '匹配数字和字母。' });
+        } else if (/^[\w-]+$/.test(singleTarget)) {
+             suggestions.push({ label: '单词字符', pattern: '[\\w-]+', desc: '匹配字母、数字、下划线或横杠。' });
+        }
+
+        // 3. Contextual Match (上下文提取)
+        const index = genSource.indexOf(singleTarget);
+        
+        // Left Context (Prefix)
+        // Find the nearest "boundary" character before the target (space, colon, etc.)
+        const prefixStr = genSource.substring(0, index);
+        
+        // Try to find a meaningful anchor (e.g., "ID: " or "key=")
+        // Grab up to 10 chars, trim spaces, but keep the delimiter
+        const meaningfulPrefixMatch = prefixStr.match(/([a-zA-Z0-9_]+[:=]\s*)$/); 
+        
+        if (meaningfulPrefixMatch) {
+            const prefix = escapeRegExp(meaningfulPrefixMatch[1]);
+            suggestions.push({
+                label: '基于前缀提取',
+                pattern: `${prefix}(.*?)`,
+                desc: `匹配 "${meaningfulPrefixMatch[1]}" 之后的内容 (捕获组 1)。`
+            });
+            
+            // Zero-width lookbehind (Advanced)
+            suggestions.push({
+                label: '零宽断言 (Lookbehind)',
+                pattern: `(?<=${prefix}).*?`,
+                desc: `仅匹配值，不包含前缀 "${meaningfulPrefixMatch[1]}" (部分浏览器支持)。`
+            });
+        } else {
+            // Fallback: simple surrounding non-whitespace
+            const lastSpaceIndex = prefixStr.lastIndexOf(' ');
+            if (lastSpaceIndex !== -1 && index - lastSpaceIndex < 15) {
+                 const shortPrefix = escapeRegExp(prefixStr.substring(lastSpaceIndex + 1));
+                 if (shortPrefix) {
+                     suggestions.push({
+                        label: '基于前文边界',
+                        pattern: `${shortPrefix}(.*?)`,
+                        desc: `根据前一个单词定位。`
+                     });
+                 }
+            }
+        }
+
+        // 4. Wildcard in the middle (Structure inference)
+        // If target looks like "2023-10-24", suggest "\d{4}-\d{2}-\d{2}"
+        if (/^\d{4}-\d{2}-\d{2}$/.test(singleTarget)) {
+            suggestions.push({ label: '日期格式 (YYYY-MM-DD)', pattern: '\\d{4}-\\d{2}-\\d{2}', desc: '标准日期格式。' });
         }
     }
 
-    // 4. Wildcard in the middle (Structure inference)
-    // If target looks like "2023-10-24", suggest "\d{4}-\d{2}-\d{2}"
-    if (/^\d{4}-\d{2}-\d{2}$/.test(genTarget)) {
-        suggestions.push({ label: '日期格式 (YYYY-MM-DD)', pattern: '\\d{4}-\\d{2}-\\d{2}', desc: '标准日期格式。' });
-    }
-    
     setGenResults(suggestions);
   };
 
@@ -147,18 +199,103 @@ const RegexTool: React.FC = () => {
         {/* Tab Switcher */}
         <div className="flex space-x-4 border-b border-gray-200 dark:border-slate-700 pb-2">
             <button
-                onClick={() => setActiveTab('test')}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'test' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
-            >
-                正则测试 (Test)
-            </button>
-            <button
                 onClick={() => setActiveTab('generate')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'generate' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
             >
                 正则生成 (Generate)
             </button>
+            <button
+                onClick={() => setActiveTab('test')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'test' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-600 hover:text-gray-900 dark:text-slate-400 dark:hover:text-slate-200'}`}
+            >
+                正则测试 (Test)
+            </button>
         </div>
+
+        {/* --- Tab: Generate --- */}
+        {activeTab === 'generate' && (
+             <div className="flex-1 flex flex-col gap-6 max-w-4xl mx-auto w-full">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-sm text-blue-800 dark:text-blue-200">
+                    <strong>使用说明：</strong> <br/>
+                    1. 单个提取：输入完整的“源文本”，然后输入你想提取的“目标内容”。<br/>
+                    2. 多关键词匹配：在“想要提取的内容”中输入多个关键词，用<strong>英文逗号</strong>分隔（例如：Order ID,Success），工具将生成匹配这些关键词序列的正则。
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="font-semibold text-sm text-gray-600 dark:text-slate-300">源文本 (Source)</label>
+                        <textarea 
+                            className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:outline-none resize-none font-mono text-sm"
+                            value={genSource}
+                            onChange={e => setGenSource(e.target.value)}
+                            placeholder="例如：Order ID: 2023-12345 Created successfully."
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="font-semibold text-sm text-gray-600 dark:text-slate-300">想要提取的内容 (Match)</label>
+                        <textarea 
+                            className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:outline-none resize-none font-mono text-sm"
+                            value={genTarget}
+                            onChange={e => setGenTarget(e.target.value)}
+                            placeholder="例如：2023-12345  或者  Order ID,Success"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex justify-center">
+                    <button 
+                        onClick={handleGenerate}
+                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-colors flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                        生成正则
+                    </button>
+                </div>
+
+                {genError && (
+                    <div className="text-red-500 text-center font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                        {genError}
+                    </div>
+                )}
+
+                {genResults.length > 0 && (
+                    <div className="space-y-3 mt-4">
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">生成建议</h3>
+                        <div className="grid grid-cols-1 gap-3">
+                            {genResults.map((item, idx) => (
+                                <div key={idx} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs rounded-full font-bold">
+                                                {item.label}
+                                            </span>
+                                        </div>
+                                        <code className="block bg-gray-100 dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono text-slate-800 dark:text-green-400 break-all border border-gray-200 dark:border-slate-700">
+                                            {item.pattern}
+                                        </code>
+                                        <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
+                                    </div>
+                                    <div className="flex gap-2 shrink-0">
+                                        <button 
+                                            onClick={() => navigator.clipboard.writeText(item.pattern)}
+                                            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300"
+                                        >
+                                            复制
+                                        </button>
+                                        <button 
+                                            onClick={() => applyGenerated(item.pattern)}
+                                            className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm"
+                                        >
+                                            去测试
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+             </div>
+        )}
 
         {/* --- Tab: Test --- */}
         {activeTab === 'test' && (
@@ -249,89 +386,6 @@ const RegexTool: React.FC = () => {
                     </div>
                 </div>
             </div>
-        )}
-
-        {/* --- Tab: Generate --- */}
-        {activeTab === 'generate' && (
-             <div className="flex-1 flex flex-col gap-6 max-w-4xl mx-auto w-full">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-sm text-blue-800 dark:text-blue-200">
-                    <strong>使用说明：</strong> 输入完整的“源文本”，然后输入你想从中提取的“目标内容”。工具将分析并生成可提取该内容的正则表达式建议。
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <label className="font-semibold text-sm text-gray-600 dark:text-slate-300">源文本 (Source)</label>
-                        <textarea 
-                            className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:outline-none resize-none font-mono text-sm"
-                            value={genSource}
-                            onChange={e => setGenSource(e.target.value)}
-                            placeholder="例如：Order ID: 2023-12345 Created successfully."
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <label className="font-semibold text-sm text-gray-600 dark:text-slate-300">想要提取的内容 (Match)</label>
-                        <textarea 
-                            className="w-full h-32 p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:outline-none resize-none font-mono text-sm"
-                            value={genTarget}
-                            onChange={e => setGenTarget(e.target.value)}
-                            placeholder="例如：2023-12345"
-                        />
-                    </div>
-                </div>
-
-                <div className="flex justify-center">
-                    <button 
-                        onClick={handleGenerate}
-                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-md transition-colors flex items-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                        生成正则
-                    </button>
-                </div>
-
-                {genError && (
-                    <div className="text-red-500 text-center font-medium bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                        {genError}
-                    </div>
-                )}
-
-                {genResults.length > 0 && (
-                    <div className="space-y-3 mt-4">
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100">生成建议</h3>
-                        <div className="grid grid-cols-1 gap-3">
-                            {genResults.map((item, idx) => (
-                                <div key={idx} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 text-xs rounded-full font-bold">
-                                                {item.label}
-                                            </span>
-                                        </div>
-                                        <code className="block bg-gray-100 dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono text-slate-800 dark:text-green-400 break-all border border-gray-200 dark:border-slate-700">
-                                            {item.pattern}
-                                        </code>
-                                        <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
-                                    </div>
-                                    <div className="flex gap-2 shrink-0">
-                                        <button 
-                                            onClick={() => navigator.clipboard.writeText(item.pattern)}
-                                            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-600 dark:text-gray-300"
-                                        >
-                                            复制
-                                        </button>
-                                        <button 
-                                            onClick={() => applyGenerated(item.pattern)}
-                                            className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded shadow-sm"
-                                        >
-                                            去测试
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-             </div>
         )}
     </div>
   );

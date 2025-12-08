@@ -71,6 +71,9 @@ const Home: React.FC = () => {
     return acc;
   }, {} as Record<ToolCategory, Tool[]>);
 
+  // Define sort order based on updated categories
+  const categoryOrder = [ToolCategory.ANALYSIS, ToolCategory.CONVERSION, ToolCategory.BASIC];
+
   return (
     <div className="space-y-8 pb-10">
       {/* Header & Search */}
@@ -79,7 +82,7 @@ const Home: React.FC = () => {
           测试工程师 <span className="text-blue-600">常用工具站</span>
         </h1>
         <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-          测试工程师 (QA) 日常辅助工具集合。提供数据格式化、URL 解析、日志分析及测试数据生成等功能。
+          测试工程师 (QA) 日常辅助工具集合。集成数据分析、格式转换及各类基础实用工具，提升日常工作效率。
         </p>
         
         <div className="max-w-xl mx-auto relative mt-6">
@@ -117,23 +120,28 @@ const Home: React.FC = () => {
       )}
 
       {/* All Tools grouped by category */}
-      {Object.entries(groupedTools).map(([category, tools]) => (
-        <section key={category}>
-          <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-2">
-            {category}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tools.map(tool => (
-              <ToolCard 
-                key={tool.id} 
-                tool={tool} 
-                isFav={favorites.includes(tool.id)}
-                onToggle={toggleFavorite}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+      {categoryOrder.map(category => {
+          const tools = groupedTools[category];
+          if (!tools || tools.length === 0) return null;
+          
+          return (
+            <section key={category}>
+              <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-200 border-b border-gray-200 dark:border-slate-700 pb-2">
+                {category}
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tools.map(tool => (
+                  <ToolCard 
+                    key={tool.id} 
+                    tool={tool} 
+                    isFav={favorites.includes(tool.id)}
+                    onToggle={toggleFavorite}
+                  />
+                ))}
+              </div>
+            </section>
+          );
+      })}
 
       {filteredTools.length === 0 && (
          <div className="text-center py-10 text-gray-500">

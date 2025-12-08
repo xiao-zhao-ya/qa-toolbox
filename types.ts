@@ -1,10 +1,7 @@
 export enum ToolCategory {
-  DATA = '数据 & 格式',
-  TIME = '时间工具',
-  HTTP = 'HTTP & 网络',
-  ENCODE = '编码 & 加密',
-  TEXT = '文本 & 正则',
-  GEN = '数据生成'
+  ANALYSIS = '数据分析',
+  CONVERSION = '数据转换',
+  BASIC = '基本工具'
 }
 
 export interface Tool {

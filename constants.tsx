@@ -57,12 +57,13 @@ export const Icons: Record<string, React.FC<{ className?: string }>> = {
 };
 
 export const TOOLS: Tool[] = [
+  // --- 数据分析 (Data Analysis) ---
   {
     id: 'json',
     name: '数据格式化',
     desc: 'JSON 与 SQL 代码的格式化、校验与美化。',
     path: '/tools/json',
-    category: ToolCategory.DATA,
+    category: ToolCategory.ANALYSIS,
     icon: 'Json'
   },
   {
@@ -70,15 +71,25 @@ export const TOOLS: Tool[] = [
     name: 'JSON 数据分析',
     desc: '复杂 JSON 结构分析，批量提取数组字段值。',
     path: '/tools/json-analyze',
-    category: ToolCategory.DATA,
+    category: ToolCategory.ANALYSIS,
     icon: 'Analyze'
   },
+  {
+    id: 'regex',
+    name: '正则测试',
+    desc: '正则表达式实时测试与高亮。',
+    path: '/tools/regex',
+    category: ToolCategory.ANALYSIS,
+    icon: 'Code'
+  },
+
+  // --- 数据转换 (Data Conversion) ---
   {
     id: 'convert',
     name: '数据转换',
     desc: 'JSON 转 SQL DDL, XML, YAML, CSV 互转。',
     path: '/tools/format-convert',
-    category: ToolCategory.DATA,
+    category: ToolCategory.CONVERSION,
     icon: 'Shuffle'
   },
   {
@@ -86,55 +97,15 @@ export const TOOLS: Tool[] = [
     name: '附件格式转换',
     desc: '图片转 PDF、文件合并等工具。',
     path: '/tools/file-convert',
-    category: ToolCategory.DATA,
+    category: ToolCategory.CONVERSION,
     icon: 'FileText'
-  },
-  {
-    id: 'url',
-    name: 'URL 解析',
-    desc: '解析 URL，分析查询参数和域名。',
-    path: '/tools/url',
-    category: ToolCategory.HTTP,
-    icon: 'Link'
-  },
-  {
-    id: 'http-status',
-    name: 'HTTP 状态码',
-    desc: '常见 HTTP 状态码速查与详解。',
-    path: '/tools/http-status',
-    category: ToolCategory.HTTP,
-    icon: 'Globe'
-  },
-  {
-    id: 'time',
-    name: '时间戳工具',
-    desc: '时间戳、日期格式及转换。',
-    path: '/tools/time',
-    category: ToolCategory.TIME,
-    icon: 'Clock'
-  },
-  {
-    id: 'regex',
-    name: '正则测试',
-    desc: '正则表达式实时测试与高亮。',
-    path: '/tools/regex',
-    category: ToolCategory.TEXT,
-    icon: 'Code'
-  },
-  {
-    id: 'diff',
-    name: '文本对比',
-    desc: '文本或表格对比是否一致。',
-    path: '/tools/diff',
-    category: ToolCategory.TEXT,
-    icon: 'Diff'
   },
   {
     id: 'templating',
     name: '数据批量替换',
     desc: '根据自定义规则批量查找并替换文本内容。',
     path: '/tools/templating',
-    category: ToolCategory.GEN,
+    category: ToolCategory.CONVERSION,
     icon: 'Code'
   },
   {
@@ -142,15 +113,49 @@ export const TOOLS: Tool[] = [
     name: '测试数据生成',
     desc: '生成随机用户数据、UUID 和边界测试字符串。',
     path: '/tools/data-gen',
-    category: ToolCategory.GEN,
+    category: ToolCategory.CONVERSION,
     icon: 'Shuffle'
+  },
+
+  // --- 基本工具 (Basic Tools) ---
+  {
+    id: 'url',
+    name: 'URL 解析',
+    desc: '解析 URL，分析查询参数和域名。',
+    path: '/tools/url',
+    category: ToolCategory.BASIC,
+    icon: 'Link'
+  },
+  {
+    id: 'http-status',
+    name: 'HTTP 状态码',
+    desc: '常见 HTTP 状态码速查与详解。',
+    path: '/tools/http-status',
+    category: ToolCategory.BASIC,
+    icon: 'Globe'
+  },
+  {
+    id: 'time',
+    name: '时间戳工具',
+    desc: '时间戳、日期格式及转换。',
+    path: '/tools/time',
+    category: ToolCategory.BASIC,
+    icon: 'Clock'
+  },
+  {
+    id: 'diff',
+    name: '文本对比',
+    desc: '文本或表格对比是否一致。',
+    path: '/tools/diff',
+    category: ToolCategory.BASIC,
+    icon: 'Diff'
   },
   {
     id: 'base64',
     name: '编码 / 解码',
     desc: 'Base64, URL 编码/解码。',
     path: '/tools/encode',
-    category: ToolCategory.ENCODE,
+    category: ToolCategory.BASIC,
     icon: 'Code'
   }
 ];
