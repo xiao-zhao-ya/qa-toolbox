@@ -3,6 +3,19 @@ import { format as formatSqlString } from 'sql-formatter';
 
 type FormatTab = 'json' | 'sql';
 
+// Define supported dialects to match sql-formatter types
+type SqlDialect = 'sql' | 'mysql' | 'postgresql' | 'sqlite' | 'transactsql' | 'plsql' | 'bigquery';
+
+const SQL_DIALECTS: { value: SqlDialect; label: string }[] = [
+  { value: 'sql', label: 'Standard SQL' },
+  { value: 'mysql', label: 'MySQL' },
+  { value: 'postgresql', label: 'PostgreSQL' },
+  { value: 'sqlite', label: 'SQLite' },
+  { value: 'transactsql', label: 'SQL Server (T-SQL)' },
+  { value: 'plsql', label: 'Oracle (PL/SQL)' },
+  { value: 'bigquery', label: 'BigQuery' },
+];
+
 const JsonTools: React.FC = () => {
   const [activeTab, setActiveTab] = useState<FormatTab>('json');
   
@@ -15,6 +28,7 @@ const JsonTools: React.FC = () => {
   const [sqlInput, setSqlInput] = useState('');
   const [sqlOutput, setSqlOutput] = useState('');
   const [sqlError, setSqlError] = useState<string | null>(null);
+  const [sqlDialect, setSqlDialect] = useState<SqlDialect>('mysql'); // Default to mysql as it handles variables well
 
   // --- JSON Logic ---
   const formatJson = () => {
@@ -53,7 +67,7 @@ const JsonTools: React.FC = () => {
         if (!sqlInput.trim()) return;
         // 使用 sql-formatter 格式化，支持大部分标准 SQL
         const formatted = formatSqlString(sqlInput, {
-            language: 'sql',
+            language: sqlDialect,
             tabWidth: 4,
             keywordCase: 'upper',
             linesBetweenQueries: 2
@@ -61,7 +75,7 @@ const JsonTools: React.FC = () => {
         setSqlOutput(formatted);
         setSqlError(null);
     } catch (e: any) {
-        setSqlError("SQL 格式化错误: " + e.message);
+        setSqlError("SQL 格式化错误: " + e.message + "\n\n提示: 请尝试在右上角切换不同的 SQL 方言 (Dialect)。");
         setSqlOutput('');
     }
   };
@@ -177,9 +191,19 @@ const JsonTools: React.FC = () => {
             <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center h-[28px]">
                     <label className="text-sm font-semibold text-gray-600 dark:text-slate-400">结果</label>
-                    <button onClick={formatSql} className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 shadow-sm">
-                        格式化
-                    </button>
+                    <div className="flex gap-2 items-center">
+                        <select
+                            value={sqlDialect}
+                            onChange={(e) => setSqlDialect(e.target.value as SqlDialect)}
+                            className="px-2 py-1 text-xs border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 dark:text-slate-200 outline-none focus:border-blue-500 cursor-pointer"
+                            title="选择 SQL 方言"
+                        >
+                            {SQL_DIALECTS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                        </select>
+                        <button onClick={formatSql} className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 shadow-sm">
+                            格式化
+                        </button>
+                    </div>
                 </div>
                 <div className="relative flex-1">
                     {sqlError ? (
