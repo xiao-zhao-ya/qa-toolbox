@@ -3,8 +3,9 @@ import { Icons } from '../constants';
 import { jsPDF } from 'jspdf';
 import { PDFDocument } from 'pdf-lib';
 import * as XLSX from 'xlsx';
+import JSZip from 'jszip';
 
-type Tab = 'img2pdf' | 'excelMerge' | 'pdfMerge';
+type Tab = 'img2pdf' | 'excelMerge' | 'pdfMerge' | 'xlsx2xmind';
 
 interface FileItem {
   id: string;
@@ -17,13 +18,15 @@ const FileConverter: React.FC = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [xmindColumns, setXmindColumns] = useState('A,B,C,D'); // User input for columns
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // --- Tab Config ---
   const tabConfig = {
     img2pdf: { label: '图片转 PDF', accept: 'image/png, image/jpeg, image/jpg', multiple: true, desc: '将多张 JPG/PNG 图片合并为一个 PDF 文件。' },
     excelMerge: { label: '表格合并', accept: '.xlsx, .csv', multiple: true, desc: '将多个 Excel/CSV 文件合并为一个 Excel 文件 (不同 Sheet)。' },
-    pdfMerge: { label: 'PDF 合并', accept: '.pdf', multiple: true, desc: '将多个 PDF 文件按顺序合并为一个 PDF 文件。' }
+    pdfMerge: { label: 'PDF 合并', accept: '.pdf', multiple: true, desc: '将多个 PDF 文件按顺序合并为一个 PDF 文件。' },
+    xlsx2xmind: { label: 'Excel 转 XMind', accept: '.xlsx', multiple: false, desc: '将 Excel 文件转换为 XMind 思维导图 (支持多 Sheet)。' }
   };
 
   const currentConfig = tabConfig[activeTab];
@@ -33,10 +36,17 @@ const FileConverter: React.FC = () => {
   const handleFiles = (newFiles: FileList | null) => {
     if (!newFiles) return;
     const added: FileItem[] = [];
+    
+    // For single file modes, clear previous
+    if (!currentConfig.multiple) {
+        setFiles([]);
+    }
+
     Array.from(newFiles).forEach(file => {
       // Basic validation based on tab
       if (activeTab === 'img2pdf' && !file.type.startsWith('image/')) return;
       if (activeTab === 'pdfMerge' && file.type !== 'application/pdf') return;
+      if (activeTab === 'xlsx2xmind' && !file.name.endsWith('.xlsx')) return;
       
       const item: FileItem = {
         id: Math.random().toString(36).substring(7),
@@ -45,7 +55,8 @@ const FileConverter: React.FC = () => {
       };
       added.push(item);
     });
-    setFiles(prev => [...prev, ...added]);
+    
+    setFiles(prev => currentConfig.multiple ? [...prev, ...added] : added);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -111,6 +122,22 @@ const FileConverter: React.FC = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+  };
+
+  const genId = () => Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+
+  const getColumnIndex = (str: string): number => {
+    const s = str.trim().toUpperCase();
+    if (!s) return -1;
+    // Check if number (e.g., "0", "1")
+    if (/^\d+$/.test(s)) return parseInt(s, 10); 
+    
+    // Excel column name to index (A->0, B->1, AA->26)
+    let val = 0;
+    for (let i = 0; i < s.length; i++) {
+        val = val * 26 + (s.charCodeAt(i) - ('A'.charCodeAt(0) - 1));
+    }
+    return val - 1;
   };
 
   // --- Processing Logic ---
@@ -205,11 +232,141 @@ const FileConverter: React.FC = () => {
         }
 
         const pdfBytes = await mergedPdf.save();
-        const blob = new Blob([pdfBytes as any], { type: 'application/ofd' });
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         downloadBlob(blob, 'merged_documents.pdf');
 
     } catch (e: any) {
         alert("PDF 合并失败: " + e.message);
+        console.error(e);
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const processXlsxToXmind = async () => {
+    if (files.length === 0) return;
+    setIsProcessing(true);
+
+    try {
+        const file = files[0].file;
+        const data = await readFileAsArrayBuffer(file);
+        const workbook = XLSX.read(data);
+        
+        // Parse user columns config
+        // "A,B,C" -> [0, 1, 2]
+        const colIndices = xmindColumns.split(/[,，]/).map(getColumnIndex).filter(i => i >= 0);
+        
+        if (colIndices.length === 0) {
+            throw new Error("请至少指定一列有效列（例如 A,B,C）");
+        }
+
+        const xmindSheets: any[] = [];
+
+        workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            // Get raw data array of arrays, skipping header?
+            // User requested: "xlsx的表头字段不转换" (Don't convert header)
+            // So we skip the first row.
+            const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+            
+            // Skip header row, start from index 1
+            const jsonData = rawData.slice(1);
+            
+            if (jsonData.length === 0) return;
+
+            // XMind Root Topic
+            const rootId = genId();
+            const rootTopic = {
+                id: rootId,
+                class: 'topic',
+                title: sheetName,
+                structureClass: 'org.xmind.ui.map.unbalanced',
+                children: {
+                    attached: [] as any[]
+                }
+            };
+
+            for (let r = 0; r < jsonData.length; r++) {
+                const row = jsonData[r];
+                
+                // Track the current parent for this row. 
+                // We start at Root for every row and traverse down the columns.
+                let currentParent: any = rootTopic;
+
+                // Iterate through user-defined hierarchy levels (Columns)
+                for (let level = 0; level < colIndices.length; level++) {
+                    const colIndex = colIndices[level];
+                    const cellVal = row[colIndex];
+
+                    // Logic:
+                    // If cell is NOT empty -> Create/Find node and make it the currentParent.
+                    // If cell IS empty -> Do nothing. currentParent stays the same (linking previous level to next level).
+                    
+                    if (cellVal !== undefined && cellVal !== null && String(cellVal).trim() !== '') {
+                        const title = String(cellVal).trim();
+                        
+                        // Check if currentParent already has a child with this title (Grouping)
+                        let existingNode = null;
+                        if (currentParent.children && currentParent.children.attached) {
+                             existingNode = currentParent.children.attached.find((child: any) => child.title === title);
+                        }
+
+                        if (existingNode) {
+                            // Reuse existing node
+                            currentParent = existingNode;
+                        } else {
+                            // Create new node
+                            const newNode = {
+                                id: genId(),
+                                title: title,
+                                class: 'topic',
+                                children: { attached: [] }
+                            };
+                            
+                            if (!currentParent.children) currentParent.children = { attached: [] };
+                            if (!currentParent.children.attached) currentParent.children.attached = [];
+                            
+                            currentParent.children.attached.push(newNode);
+                            currentParent = newNode;
+                        }
+                    }
+                    // If empty, continue loop. 
+                    // currentParent remains the node from the previous non-empty column.
+                }
+            }
+
+            xmindSheets.push({
+                id: genId(),
+                class: 'sheet',
+                title: sheetName,
+                rootTopic: rootTopic
+            });
+        });
+
+        // Pack into .xmind (ZIP)
+        const zip = new JSZip();
+        
+        // manifest.json
+        zip.file('manifest.json', JSON.stringify({
+            "file-entries": {
+                "content.json": {},
+                "metadata.json": {}
+            }
+        }));
+
+        // metadata.json
+        zip.file('metadata.json', JSON.stringify({}));
+
+        // content.json
+        zip.file('content.json', JSON.stringify(xmindSheets));
+
+        // Generate and download
+        const blob = await zip.generateAsync({ type: "blob" });
+        const fileName = file.name.replace(/\.xlsx$/i, '') + '.xmind';
+        downloadBlob(blob, fileName);
+
+    } catch (e: any) {
+        alert("转换 XMind 失败: " + e.message);
         console.error(e);
     } finally {
         setIsProcessing(false);
@@ -221,6 +378,7 @@ const FileConverter: React.FC = () => {
           case 'img2pdf': return processImg2Pdf();
           case 'excelMerge': return processExcelMerge();
           case 'pdfMerge': return processPdfMerge();
+          case 'xlsx2xmind': return processXlsxToXmind();
       }
   };
 
@@ -244,6 +402,28 @@ const FileConverter: React.FC = () => {
          <span className="text-xl">💡</span>
          {currentConfig.desc}
       </div>
+      
+      {/* Extra Config for XMind */}
+      {activeTab === 'xlsx2xmind' && (
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700 dark:text-slate-200">
+                  自定义列映射 (层级顺序)
+              </label>
+              <div className="flex gap-2 items-center">
+                  <input 
+                      type="text" 
+                      value={xmindColumns}
+                      onChange={e => setXmindColumns(e.target.value)}
+                      className="flex-1 p-2 border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-900 text-sm"
+                      placeholder="例如: A,B,C 或 0,1,2"
+                  />
+                  <div className="text-xs text-gray-500 dark:text-gray-400 max-w-xs">
+                      输入列号或字母，用逗号分隔。第一项为根节点下的一级节点，依此类推。
+                      <br/>注：默认跳过第一行(表头)；若单元格为空，则自动跳过该层级。
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-0">
