@@ -10,19 +10,11 @@ import DataGenTool from './pages/DataGenTool';
 import RegexTool from './pages/RegexTool';
 import FormatConvert from './pages/FormatConvert';
 import EncodeDecode from './pages/EncodeDecode';
+import CryptoTool from './pages/CryptoTool';
 import HttpStatusTool from './pages/HttpStatusTool';
 import TextDiff from './pages/TextDiff';
 import TextTemplating from './pages/TextTemplating';
 import FileConverter from './pages/FileConverter';
-
-// Placeholder for tools not fully implemented in this demo
-const Placeholder = ({ title }: { title: string }) => (
-  <div className="flex flex-col items-center justify-center h-96 text-gray-400">
-    <div className="text-4xl mb-4">🚧</div>
-    <h2 className="text-xl font-bold">{title}</h2>
-    <p>功能即将上线...</p>
-  </div>
-);
 
 const App: React.FC = () => {
   return (
@@ -40,6 +32,7 @@ const App: React.FC = () => {
           <Route path="tools/format-convert" element={<FormatConvert />} />
           <Route path="tools/file-convert" element={<FileConverter />} />
           <Route path="tools/encode" element={<EncodeDecode />} />
+          <Route path="tools/crypto" element={<CryptoTool />} />
           <Route path="tools/diff" element={<TextDiff />} />
           <Route path="tools/templating" element={<TextTemplating />} />
           

@@ -39,6 +39,9 @@ export const Icons: Record<string, React.FC<{ className?: string }>> = {
   Globe: ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
   ),
+  Shield: ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  ),
   Diff: ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
   ),
@@ -69,7 +72,7 @@ export const TOOLS: Tool[] = [
   {
     id: 'json-analyze',
     name: 'JSON 数据分析',
-    desc: '复杂 JSON 结构分析，批量提取数组字段值。',
+    desc: '复杂 JSON 结构 analysis，批量提取数组字段值。',
     path: '/tools/json-analyze',
     category: ToolCategory.ANALYSIS,
     icon: 'Analyze'
@@ -157,5 +160,13 @@ export const TOOLS: Tool[] = [
     path: '/tools/encode',
     category: ToolCategory.BASIC,
     icon: 'Code'
+  },
+  {
+    id: 'crypto',
+    name: '加密 / 解密',
+    desc: 'AES, DES, RSA, MD5, SHA, HMAC 常用加解密工具。',
+    path: '/tools/crypto',
+    category: ToolCategory.BASIC,
+    icon: 'Shield'
   }
 ];
