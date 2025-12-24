@@ -1,3 +1,4 @@
+
 {
   "name": "qa-toolbox",
   "version": "1.0.0",
@@ -8,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
     "js-yaml": "^4.1.0",
     "jspdf": "^2.5.1",
     "pdf-lib": "^1.17.1",
@@ -19,6 +21,7 @@
     "sql-formatter": "^15.3.1"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
