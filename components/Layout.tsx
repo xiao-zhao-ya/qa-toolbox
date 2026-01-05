@@ -2,8 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Icons, TOOLS } from '../constants';
 import { ToolCategory } from '../types';
+import KBar from './KBar';
+import { useKBar } from 'kbar';
 
 const Layout: React.FC = () => {
+    return (
+        <KBar>
+            <LayoutContent />
+        </KBar>
+    );
+};
+
+const LayoutContent: React.FC = () => {
+  const { query } = useKBar();
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     return localStorage.getItem('theme') === 'dark';
   });
@@ -83,13 +94,21 @@ const Layout: React.FC = () => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-200 dark:border-slate-700">
+        <div className="p-4 border-t border-gray-200 dark:border-slate-700 flex items-center gap-1">
             <button 
                 onClick={() => setDarkMode(!darkMode)}
-                className="flex items-center gap-3 w-full px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                className="flex-1 flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
             >
                 {darkMode ? <Icons.Sun className="w-5 h-5" /> : <Icons.Moon className="w-5 h-5" />}
-                <span>{darkMode ? '浅色模式' : '深色模式'}</span>
+                <span className="text-sm">{darkMode ? '浅色模式' : '深色模式'}</span>
+            </button>
+            <button 
+                onClick={() => query.toggle()}
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors group relative"
+                title="搜索工具 (⌘K)"
+            >
+                <Icons.Search className="w-5 h-5 text-gray-500 group-hover:text-blue-600 transition-colors" />
+                <span className="sr-only">搜索</span>
             </button>
         </div>
       </aside>
